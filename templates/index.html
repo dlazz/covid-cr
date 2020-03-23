@@ -15,8 +15,11 @@
         <div class="container">
             <div class="row">
                 <div class="col-6 col-md-12">
-                    <h1 class="text-center">Andamento infezione Covid-19 Cremona</h1>
-                    <canvas id="covid" width="400" height="300"></canvas>
+                    <h1 class="d-block p-3 text-center">Cremona COVID-19 Trend</h1>
+                    <canvas id="covid" width="400" height="250"></canvas>
+                </div>
+                <div>
+                    <h6 class="d-block p-2">Data source: <a href="https://github.com/pcm-dpc/COVID-19" class="text-decoration-none">Protezione Civile</a> </h6>
                 </div>
             </div>
         </div>
@@ -35,36 +38,43 @@ var myChart = new Chart(ctx, {
     type: 'line',
     data: {
         labels: [
-          {{ range . }}
+          {{ range  .CR }}
             {{ .Date }},
           {{ end }}
           ],
         datasets: [
             {
-            label: 'NumeroCasi',
+            label: 'Total infection number',
             data: [
-                {{ range . }}
+                {{ range .CR }}
                     {{ .NumeroCasi }},
                 {{ end }}
                 ],
-            borderColor: 'rgb(255, 99, 132)',
+            borderColor: 'rgb(255, 0, 0)',
             borderWidth: 1,
-            fill: false
+            fill: false,
+            lineTension: 0,
+            borderWidth: 3
         },
         {
-            label: 'Incremento Giornaliero',
+            label: 'Daily infection increase',
             data: [
-                {{ range . }}
+                {{ range .CR }}
                     {{ .DailyIncrement }},
                 {{ end }}
                 ],
-            borderColor: 'rgb(1, 10, 255)',
+            borderColor: 'rgb(50, 50, 200)',
             borderWidth: 1,
-            fill: false
+            fill: false,
+            lineTension: 0,
+            borderWidth: 3
         }
         ]
     },
     options: {
+        legend: {
+            position: 'bottom'
+        },
         scales: {
             yAxes: [{
                 ticks: {

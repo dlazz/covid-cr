@@ -6,23 +6,19 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
-	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 )
 
-var url = "https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-province/dpc-covid19-ita-province.csv"
-
 const (
-	timeLayout = "2006-01-02 15:04:05"
+	url = "https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-province/dpc-covid19-ita-province.csv"
 )
 
-type covidCR struct {
+type covidData struct {
 	Date           string `json:"data"`
 	City           string `json:"city"`
-	DailyIncrement int    `json:"daily`
+	DailyIncrement int    `json:"daily"`
 	NumeroCasi     string `json:"casi"`
 }
 
@@ -32,7 +28,7 @@ func main() {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	rows, err := getValues(url)
+	rows, err := fetchURL(url)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -41,46 +37,51 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, rows)
 
 }
-func getValues(url string) (rows []covidCR, err error) {
+
+func fetchURL(url string) (m map[string][]covidData, err error) {
+	m = make(map[string][]covidData)
 	res, err := http.Get(url)
 	if err != nil {
-		log.Println(err)
-		os.Exit(1)
+		return m, fmt.Errorf("error fetching url: %v", err)
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		return rows, fmt.Errorf("response error. StatusCode: %d", res.StatusCode)
+		return m, fmt.Errorf("response error. StatusCode: %d", res.StatusCode)
 	}
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return rows, fmt.Errorf("error reading body: %v", err)
+		return m, fmt.Errorf("error reading body: %v", err)
 
 	}
 
 	csvFile := csv.NewReader(bytes.NewBuffer(body))
-	record, err := csvFile.ReadAll()
+	records, err := csvFile.ReadAll()
 
 	if err != nil {
-		return rows, fmt.Errorf("error convertin csv: %v", err)
+		return m, fmt.Errorf("error converting csv: %v", err)
 	}
-
-	rows = []covidCR{}
-	pvDay := 0
-	for _, item := range record {
-		if item[6] == "CR" {
-			nCasi := item[len(item)-1]
-			nc, _ := strconv.Atoi(nCasi)
-			row := covidCR{}
-			row.Date = strings.Split(item[0], " ")[0]
-			row.City = item[5]
-			row.DailyIncrement = nc - pvDay
-			row.NumeroCasi = nCasi
-
-			rows = append(rows, row)
-			pvDay = nc
+	prev := 0
+	for i, r := range records {
+		prov := r[6]
+		if prov != "" {
+			if len(m[prov]) > 0 {
+				if i > 0 {
+					prev = conv(m[prov][len(m[prov])-1].NumeroCasi)
+				}
+			}
+			m[prov] = append(m[prov], covidData{
+				Date:           strings.Split(r[0], " ")[0],
+				City:           r[5],
+				NumeroCasi:     r[len(r)-1],
+				DailyIncrement: conv(r[len(r)-1]) - prev,
+			})
 		}
 	}
+	return m, nil
+}
 
-	return rows, nil
+func conv(s string) (i int) {
+	i, _ = strconv.Atoi(s)
+	return i
 }
