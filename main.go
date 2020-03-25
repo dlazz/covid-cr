@@ -73,8 +73,8 @@ func fetchURL(url string) (m map[string][]covidData, err error) {
 			m[prov] = append(m[prov], covidData{
 				Date:           strings.Split(r[0], " ")[0],
 				City:           r[5],
-				NumeroCasi:     r[len(r)-1],
-				DailyIncrement: conv(r[len(r)-1]) - prev,
+				NumeroCasi:     r[9],
+				DailyIncrement: conv(r[9]) - prev,
 			})
 		}
 	}
